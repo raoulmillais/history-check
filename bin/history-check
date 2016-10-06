@@ -1,0 +1,160 @@
+#! /usr/bin/env bash
+
+#
+# Prelude - make bash behave sanely
+#
+set -euo pipefail
+IFS=$'\n\t'
+
+#
+# Globals
+#
+HEAD="$(git rev-parse HEAD)"
+ROOT="$(git log --pretty=format:%H | tail -n 1)"
+
+#
+# Utilities
+#
+die() {
+  local msg="$@"
+  [[ -z "${msg}" ]] || {
+    echo
+    tput setaf 1  # red
+    tput bold
+    echo "${msg}"
+    tput sgr0     # reset
+  }
+  exit 1
+}
+
+error() {
+  local msg="$@"
+  echo
+  tput setaf 1  # red
+  echo '  ✖' " ${msg}"
+  tput sgr0     # reset
+}
+
+success() {
+  local msg="$@"
+  echo
+  tput setaf 2  # green
+  echo '  ✓' " ${msg}"
+  tput sgr0     # reset
+
+}
+
+# Check a command is present
+ensure_command() {
+  local cmd="$1"
+
+  command -v "${cmd}" > /dev/null 2>&1 || {
+    die "Couldn't find required command: ${cmd}"
+  }
+}
+
+#
+# Signal handling
+#
+cleanup() {
+  git reset --hard "${HEAD}"
+}
+
+trap cleanup SIGHUP SIGINT SIGTERM
+
+#
+# Git helpers
+#
+
+# Go back one commit in history (first parent for merges)
+step_back_one_commit() {
+  git reset --hard HEAD^ > /dev/null
+}
+
+current_commit_message() {
+  GIT_PAGER= git log --format=%B -n 1
+}
+
+#
+# Checks
+#
+check_commit_message() {
+  local filename="$1"
+  local lineno=0
+  local length=0
+  local succeded=1
+
+  while read -r line ; do
+    let succeded=1
+    let lineno+=1
+    length=${#line}
+
+    [[ "${lineno}" -eq "1" ]] && {
+      [[ "${length}" -gt 50 ]] && {
+        error "Commit message: Subject line longer than 50 characters";
+        success=0
+      };
+
+      [[ ! "${line}" =~ ^[A-Z].*$ ]] && {
+        error "Commit message: Subject line not capitalised";
+        success=0
+      };
+
+      [[ "${line}" == *. ]] && {
+        error "Commit message: Subject line ended with a full stop";
+        success=0
+      };
+    }
+
+    [[ "${lineno}" -eq "2" ]] && [[ -n "${line}" ]] && {
+      error "Commit message: Subject line not separated by a blank line";
+      success=0;
+    };
+
+    [[ "${lineno}" -gt "1" ]] && [[ "${length}" -gt "72" ]] && {
+      error "Commit message: Body mot wrapped at 72 characters";
+      success=0
+    };
+  done < "$filename"
+
+  [[ "${succeded}" -eq "1" ]] && success "Commit message"
+}
+
+run_checks() {
+  check_commit_message "$(current_commit_message)"
+  npm run lint
+  npm test
+}
+
+check_project() {
+  [[ -f './package.json' ]] || {
+    die 'This does not appear to be a node project - ' \
+        'no package.json in the current directory'
+  }
+
+  [[ -z "$(json -f package.json 'scripts.lint')" ]] || {
+    die 'There is no lint script in the package.json'
+  }
+
+  [[ -z "$(json -f package.json 'scripts.test')" ]] || {
+    die 'There is no test script in the package.json'
+  }
+}
+
+traverse_history() {
+  while [[ "${ROOT}" != "$(git log --pretty=format:%H)" ]]  ; do
+      run_checks
+      step_back_one_commit
+  done
+}
+
+#
+# Main
+#
+ensure_command git
+ensure_command tail
+ensure_command npm
+ensure_command json
+traverse_history
+run_checks
+cleanup
