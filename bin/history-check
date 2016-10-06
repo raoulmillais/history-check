@@ -9,8 +9,10 @@ IFS=$'\n\t'
 #
 # Globals
 #
-HEAD="$(git rev-parse HEAD)"
-ROOT="$(git log --pretty=format:%H | tail -n 1)"
+remember_git_start_and_end() {
+  HEAD="$(git rev-parse HEAD)"
+  ROOT="$(git log --pretty=format:%H | tail -n 1)"
+}
 
 #
 # Utilities
@@ -75,6 +77,12 @@ current_commit_message() {
   GIT_PAGER= git log --format=%B -n 1
 }
 
+exit_if_not_git_repo() {
+  local gitroot="$(git rev-parse --show-toplevel 2> /dev/null)"
+
+  [[ "${gitroot}" == "" ]] || die 'Current directory is not in a repository'
+}
+
 #
 # Checks
 #
@@ -127,9 +135,10 @@ run_checks() {
 }
 
 check_project() {
+  exit_if_not_git_repo
+
   [[ -f './package.json' ]] || {
-    die 'This does not appear to be a node project - ' \
-        'no package.json in the current directory'
+    die 'This does not appear to be a node project'
   }
 
   [[ -z "$(json -f package.json 'scripts.lint')" ]] || {
@@ -155,6 +164,10 @@ ensure_command git
 ensure_command tail
 ensure_command npm
 ensure_command json
+check_project
+remember_git_start_and_end
 traverse_history
 run_checks
 cleanup
+
+# syntax=bash et ts=2 sts=2 sw=2
