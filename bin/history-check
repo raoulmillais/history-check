@@ -20,7 +20,6 @@ remember_git_start_and_end() {
 die() {
   local msg="$@"
   [[ -z "${msg}" ]] || {
-    echo
     tput setaf 1  # red
     tput bold
     echo "${msg}"
@@ -31,19 +30,22 @@ die() {
 
 error() {
   local msg="$@"
-  echo
   tput setaf 1  # red
-  echo '  ✖' " ${msg}"
+  echo -n '  ✖'
   tput sgr0     # reset
+  echo " ${msg}"
 }
 
 success() {
   local msg="$@"
-  echo
   tput setaf 2  # green
-  echo '  ✓' " ${msg}"
+  echo -n '  ✓'
   tput sgr0     # reset
+  echo " ${msg}"
+}
 
+log() {
+  echo "○ $@"
 }
 
 # Check a command is present
@@ -59,7 +61,7 @@ ensure_command() {
 # Signal handling
 #
 cleanup() {
-  git reset --hard "${HEAD}"
+  git reset --hard "${HEAD}" > /dev/null 2>&1
 }
 
 trap cleanup SIGHUP SIGINT SIGTERM
@@ -71,6 +73,7 @@ trap cleanup SIGHUP SIGINT SIGTERM
 # Go back one commit in history (first parent for merges)
 step_back_one_commit() {
   git reset --hard HEAD^ > /dev/null
+  log "$(git rev-parse HEAD)"
 }
 
 current_commit_message() {
@@ -80,7 +83,8 @@ current_commit_message() {
 exit_if_not_git_repo() {
   local gitroot="$(git rev-parse --show-toplevel 2> /dev/null)"
 
-  [[ "${gitroot}" == "" ]] || die 'Current directory is not in a repository'
+  [[ "${gitroot}" == "" ]] && die 'Current directory is not in a repository'
+  return 0
 }
 
 #
@@ -130,8 +134,20 @@ check_commit_message() {
 
 run_checks() {
   check_commit_message "$(current_commit_message)"
-  npm run lint
-  npm test
+  set +e
+  npm run lint > /dev/null 2>&1
+  if [[ "$?" -eq 0 ]]; then
+    success 'Lint'
+  else
+    error 'Lint: script did not exit successfully'
+  fi
+  npm test > /dev/null 2>&1
+  if [[ "$?" -eq 0 ]]; then
+    success 'Test'
+  else
+    error 'Test: script did not exit successfully'
+  fi
+  set -e
 }
 
 check_project() {
@@ -141,19 +157,21 @@ check_project() {
     die 'This does not appear to be a node project'
   }
 
-  [[ -z "$(json -f package.json 'scripts.lint')" ]] || {
+  [[ -z "$(json -f package.json 'scripts.lint')" ]] && {
     die 'There is no lint script in the package.json'
   }
 
-  [[ -z "$(json -f package.json 'scripts.test')" ]] || {
+  [[ -z "$(json -f package.json 'scripts.test')" ]] && {
     die 'There is no test script in the package.json'
   }
+
+  return 0
 }
 
 traverse_history() {
   while [[ "${ROOT}" != "$(git log --pretty=format:%H)" ]]  ; do
-      run_checks
-      step_back_one_commit
+    run_checks
+    step_back_one_commit
   done
 }
 
@@ -166,6 +184,7 @@ ensure_command npm
 ensure_command json
 check_project
 remember_git_start_and_end
+log "HEAD"
 traverse_history
 run_checks
 cleanup
