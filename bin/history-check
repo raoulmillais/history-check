@@ -31,16 +31,18 @@ die() {
 
 error() {
   local msg="$@"
+  echo -n '| '
   tput setaf 1  # red
-  echo -n '  ✖'
+  echo -n ' ✖'
   tput sgr0     # reset
   echo " ${msg}"
 }
 
 success() {
   local msg="$@"
+  echo -n '| '
   tput setaf 2  # green
-  echo -n '  ✓'
+  echo -n ' ✓'
   tput sgr0     # reset
   echo " ${msg}"
 }
@@ -185,9 +187,10 @@ ensure_command npm
 ensure_command json
 check_project
 remember_git_start_and_end
-log "HEAD"
+log "HEAD: $(git rev-parse HEAD)"
 traverse_history
 run_checks
+log "ROOT: $(git rev-parse HEAD)"
 cleanup
 
 # syntax=bash et ts=2 sts=2 sw=2
