@@ -47,7 +47,7 @@ success() {
   echo " ${msg}"
 }
 
-log() {
+log_commit() {
   echo "○ $@"
 }
 
@@ -76,11 +76,15 @@ trap cleanup SIGHUP SIGINT SIGTERM
 # Go back one commit in history (first parent for merges)
 step_back_one_commit() {
   git reset --hard HEAD^ > /dev/null
-  log "$(git rev-parse HEAD)"
+  log_commit "$(git rev-parse HEAD)"
 }
 
 current_commit_message() {
   GIT_PAGER= git log --format=%B -n 1
+}
+
+current_commit_sha() {
+  git rev-parse HEAD
 }
 
 exit_if_not_git_repo() {
@@ -127,7 +131,7 @@ check_commit_message() {
     };
 
     [[ "${lineno}" -gt "1" ]] && [[ "${length}" -gt "72" ]] && {
-      error "Commit message: Body mot wrapped at 72 characters";
+      error "Commit message: Body not wrapped at 72 characters";
       success=0
     };
   done < "$filename"
@@ -172,7 +176,7 @@ check_project() {
 }
 
 traverse_history() {
-  while [[ "${ROOT}" != "$(git log --pretty=format:%H)" ]]  ; do
+  while [[ "${ROOT}" != "$(current_commit_sha)" ]]  ; do
     run_checks
     step_back_one_commit
   done
@@ -187,10 +191,10 @@ ensure_command npm
 ensure_command json
 check_project
 remember_git_start_and_end
-log "HEAD: $(git rev-parse HEAD)"
+log_commit "HEAD: $(current_commit_sha)"
 traverse_history
 run_checks
-log "ROOT: $(git rev-parse HEAD)"
+log_commit "ROOT: $(current_commit_sha)"
 cleanup
 
-# syntax=bash et ts=2 sts=2 sw=2
+# vim: syntax=bash et ts=2 sts=2 sw=2
