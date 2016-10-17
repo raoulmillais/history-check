@@ -65,6 +65,7 @@ ensure_command() {
 #
 cleanup() {
   git reset --hard "${HEAD}" > /dev/null 2>&1
+  rm -f $$_commit_message
 }
 
 trap cleanup SIGHUP SIGINT SIGTERM
@@ -98,7 +99,6 @@ exit_if_not_git_repo() {
 # Checks
 #
 check_commit_message() {
-  local filename="$1"
   local lineno=0
   local length=0
   local succeded=1
@@ -111,36 +111,39 @@ check_commit_message() {
     [[ "${lineno}" -eq "1" ]] && {
       [[ "${length}" -gt 50 ]] && {
         error "Commit message: Subject line longer than 50 characters";
-        success=0
+        succeded=0
       };
 
       [[ ! "${line}" =~ ^[A-Z].*$ ]] && {
         error "Commit message: Subject line not capitalised";
-        success=0
+        succeded=0
       };
 
       [[ "${line}" == *. ]] && {
         error "Commit message: Subject line ended with a full stop";
-        success=0
+        succeded=0
       };
     }
 
     [[ "${lineno}" -eq "2" ]] && [[ -n "${line}" ]] && {
       error "Commit message: Subject line not separated by a blank line";
-      success=0;
+      succeded=0;
     };
 
     [[ "${lineno}" -gt "1" ]] && [[ "${length}" -gt "72" ]] && {
       error "Commit message: Body not wrapped at 72 characters";
-      success=0
+      succeded=0
     };
-  done < "$filename"
+  done < $$_commit_message
 
   [[ "${succeded}" -eq "1" ]] && success "Commit message"
+  return 0
 }
 
 run_checks() {
-  check_commit_message "$(current_commit_message)"
+  current_commit_message > $$_commit_message
+  check_commit_message
+  rm -f $$_commit_message
   set +e
   npm run lint > /dev/null 2>&1
   if [[ "$?" -eq 0 ]]; then
@@ -197,4 +200,4 @@ run_checks
 log_commit "ROOT: $(current_commit_sha)"
 cleanup
 
-# vim: syntax=bash et ts=2 sts=2 sw=2
+# vim: syntax=sh et ts=2 sts=2 sw=2
