@@ -16,7 +16,7 @@ do_it() {
   remember_git_start_and_end
   log_commit "HEAD: $(current_commit_sha)"
   traverse_history
-  run_checks
+  check_commit
   log_commit "ROOT: $(current_commit_sha)"
   cleanup
 }
@@ -124,6 +124,8 @@ check_commit_message() {
   local length=0
   local succeded=1
 
+  current_commit_message > $$_commit_message
+
   while read -r line ; do
     let succeded=1
     let lineno+=1
@@ -158,13 +160,13 @@ check_commit_message() {
   done < $$_commit_message
 
   [[ "${succeded}" -eq "1" ]] && success "Commit message"
+  rm -f $$_commit_message
   return 0
 }
 
-run_checks() {
-  current_commit_message > $$_commit_message
+check_commit() {
   check_commit_message
-  rm -f $$_commit_message
+
   set +e
   npm run lint > /dev/null 2>&1
   if [[ "$?" -eq 0 ]]; then
@@ -201,11 +203,12 @@ check_project() {
 
 traverse_history() {
   while [[ "${ROOT}" != "$(current_commit_sha)" ]]  ; do
-    run_checks
+    check_commit
     step_back_one_commit
   done
 }
 
 do_it
+exit 0
 
 # vim: syntax=sh et ts=2 sts=2 sw=2
