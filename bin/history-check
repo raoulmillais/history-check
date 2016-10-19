@@ -11,10 +11,7 @@ IFS=$'\n\t'
 # Main function
 #
 do_it() {
-  ensure_command git
-  ensure_command tail
-  ensure_command npm
-  ensure_command json
+  check_required_commands_exist
   check_project
   remember_git_start_and_end
   log_commit "HEAD: $(current_commit_sha)"
@@ -115,6 +112,13 @@ exit_if_not_git_repo() {
 #
 # Checks
 #
+check_required_commands_exist() {
+  ensure_command git
+  ensure_command tail
+  ensure_command npm
+  ensure_command json
+}
+
 check_commit_message() {
   local lineno=0
   local length=0
