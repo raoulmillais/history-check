@@ -37,7 +37,7 @@ die() {
   [[ -z "${msg}" ]] || {
     tput setaf 1  # red
     tput bold
-    echo "${msg}"
+    echo "${msg}" 1>&2
     tput sgr0     # reset
   }
   exit 1
