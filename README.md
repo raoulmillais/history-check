@@ -18,3 +18,13 @@ are followed for every commit message.
 * [json](http://trentm.com/json/)
 
 ##  Installation
+
+```
+make install
+```
+
+## Uninstall
+
+```
+make uninstall
+```
