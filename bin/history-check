@@ -8,6 +8,23 @@ set -euo pipefail
 IFS=$'\n\t'
 
 #
+# Main function
+#
+do_it() {
+  ensure_command git
+  ensure_command tail
+  ensure_command npm
+  ensure_command json
+  check_project
+  remember_git_start_and_end
+  log_commit "HEAD: $(current_commit_sha)"
+  traverse_history
+  run_checks
+  log_commit "ROOT: $(current_commit_sha)"
+  cleanup
+}
+
+#
 # Globals
 #
 remember_git_start_and_end() {
@@ -185,19 +202,6 @@ traverse_history() {
   done
 }
 
-#
-# Main
-#
-ensure_command git
-ensure_command tail
-ensure_command npm
-ensure_command json
-check_project
-remember_git_start_and_end
-log_commit "HEAD: $(current_commit_sha)"
-traverse_history
-run_checks
-log_commit "ROOT: $(current_commit_sha)"
-cleanup
+do_it
 
 # vim: syntax=sh et ts=2 sts=2 sw=2
