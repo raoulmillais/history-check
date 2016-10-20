@@ -17,7 +17,7 @@ checks, when it's stdout is a TTY.  If you pipe or redirect the outputs to
 a file, colors will be disabled and only the commit hashes and errors will 
 be logged. Commit hashes always go to stdout (and success messages when stdout
 is a TTY), check failures always go to stderr, so you probably want to redirect
-if you are trying to capture the output in a file.
+both stdout and stderr if you are trying to capture the output in a file.
 
 ## Requirements
 
