@@ -110,7 +110,7 @@ step_back_one_commit() {
 }
 
 current_commit_message() {
-  GIT_PAGER= git log --format=%B -n 1
+  GIT_PAGER='' git log --format=%B -n 1
 }
 
 current_commit_sha() {
