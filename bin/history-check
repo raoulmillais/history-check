@@ -34,35 +34,50 @@ remember_git_start_and_end() {
 #
 die() {
   local msg="$@"
-  [[ -z "${msg}" ]] || {
-    tput setaf 1  # red
-    tput bold
+  if [[ -t 2 ]] ; then
+    [[ -z "${msg}" ]] || {
+      tput setaf 1  # red
+      tput bold
+      echo "${msg}" 1>&2
+      tput sgr0     # reset
+    }
+  else
     echo "${msg}" 1>&2
-    tput sgr0     # reset
-  }
+  fi
+
   exit 1
 }
 
 error() {
   local msg="$@"
-  echo -n '| '
-  tput setaf 1  # red
-  echo -n ' ✖'
-  tput sgr0     # reset
-  echo " ${msg}"
+  if [[ -t 2 ]] ; then
+    echo -n '| '
+    tput setaf 1  # red
+    echo -n ' ✖'
+    tput sgr0     # reset
+    echo " ${msg}" 1>&2
+  else
+    echo "${msg}" 1>&2
+  fi
 }
 
 success() {
   local msg="$@"
-  echo -n '| '
-  tput setaf 2  # green
-  echo -n ' ✓'
-  tput sgr0     # reset
-  echo " ${msg}"
+  if [[ -t 1 ]] ; then
+    echo -n '| '
+    tput setaf 2  # green
+    echo -n ' ✓'
+    tput sgr0     # reset
+    echo " ${msg}"
+  fi
 }
 
 log_commit() {
-  echo "○ $@"
+  if [[ -t 1 ]] ; then
+    echo "○ $@"
+  else
+    echo "$@:"
+  fi
 }
 
 # Check a command is present
