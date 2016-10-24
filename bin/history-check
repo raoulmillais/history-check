@@ -39,7 +39,7 @@ readonly -f remember_git_start_and_end
 # Utilities
 #
 die() {
-  local msg="$@"
+  local msg="$*"
   if [[ -t 2 ]] ; then
     [[ -z "${msg}" ]] || {
       tput setaf 1  # red
@@ -56,7 +56,7 @@ die() {
 readonly -f die
 
 error() {
-  local msg="$@"
+  local msg="$*"
   if [[ -t 2 ]] ; then
     echo -n '| '
     tput setaf 1  # red
@@ -70,7 +70,7 @@ error() {
 readonly -f error
 
 success() {
-  local msg="$@"
+  local msg="$*"
   if [[ -t 1 ]] ; then
     echo -n '| '
     tput setaf 2  # green
@@ -83,9 +83,9 @@ readonly -f success
 
 log_commit() {
   if [[ -t 1 ]] ; then
-    echo "○ $@"
+    echo "○ $*"
   else
-    echo "$@:"
+    echo "$*:"
   fi
 }
 readonly -f log_commit
@@ -133,7 +133,8 @@ current_commit_sha() {
 readonly -f current_commit_sha
 
 exit_if_not_git_repo() {
-  local gitroot="$(git rev-parse --show-toplevel 2> /dev/null)"
+  local gitroot
+  gitroot="$(git rev-parse --show-toplevel 2> /dev/null)"
 
   [[ "${gitroot}" == "" ]] && die 'Current directory is not in a repository'
   return 0
@@ -200,20 +201,17 @@ readonly -f check_commit_message
 check_commit() {
   check_commit_message
 
-  set +e
-  npm run lint > /dev/null 2>&1
-  if [[ "$?" -eq 0 ]]; then
+  if npm run lint > /dev/null 2>&1; then
     success 'Lint'
   else
     error 'Lint: script did not exit successfully'
   fi
-  npm test > /dev/null 2>&1
-  if [[ "$?" -eq 0 ]]; then
+
+  if npm test > /dev/null 2>&1; then
     success 'Test'
   else
     error 'Test: script did not exit successfully'
   fi
-  set -e
 }
 readonly -f check_commit
 
